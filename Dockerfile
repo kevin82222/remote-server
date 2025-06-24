@@ -2,9 +2,7 @@ FROM ubuntu:noble
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get -y update && apt-get -y upgrade
-
-RUN apt-get install -y -q tini curl python3 python3-pip
+RUN apt-get -y update && apt-get -y upgrade && apt install -yq tini curl python3 python3-pip
 
 ENV PYTHONDONTWRITEBYTECODE 1
 
@@ -14,7 +12,7 @@ WORKDIR /usr/src/app
 
 ADD requirements.txt /usr/src/app
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --break-system-packages --no-cache-dir -r requirements.txt
 
 ADD . /usr/src/app
 
@@ -24,4 +22,4 @@ USER remote
 
 EXPOSE 6837
 
-ENTRYPOINT ["tini", "--", "python3", "server.py", "--certificate=certificate/cert", "--privkey=certificate/key", "--chain=certificate/chain"]
+ENTRYPOINT ["tini", "--", "python3", "server.py", "--certificate=certificate/cert", "--privkey=certificate/privkey", "--chain=certificate/chain"]

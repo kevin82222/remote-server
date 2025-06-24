@@ -240,7 +240,17 @@ def main():
 	certData = open(config['certificate']).read()
 	chain = open(config['chain']).read()
 	log.startLogging(sys.stdout)
-	privkey = crypto.load_privatekey(crypto.FILETYPE_PEM, privkey)
+	try:
+		privkey = crypto.load_privatekey(crypto.FILETYPE_PEM, privkey)
+	except crypto.Error:
+		# Try loading as different format or with passphrase
+		try:
+			from cryptography.hazmat.primitives import serialization
+			from cryptography.hazmat.primitives.serialization import load_pem_private_key
+			crypto_key = load_pem_private_key(privkey.encode(), password=None)
+			privkey = crypto.PKey.from_cryptography_key(crypto_key)
+		except ImportError:
+			raise Exception("Unable to load private key. Please ensure cryptography library is installed.")
 	certificate = crypto.load_certificate(crypto.FILETYPE_PEM, certData)
 	chain = crypto.load_certificate(crypto.FILETYPE_PEM, chain)
 	context_factory = ssl.CertificateOptions(privateKey=privkey, certificate=certificate, extraCertChain=[chain])
