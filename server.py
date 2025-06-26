@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import random
 import string
@@ -18,6 +19,15 @@ from twisted.internet.defer import Deferred
 from twisted.python.failure import Failure
 from typing import Any, TypedDict, cast
 
+# Configure logging to file and console
+logging.basicConfig(
+	level=logging.INFO,
+	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+	handlers=[
+		logging.FileHandler('/tmp/remote-server.log'),
+		logging.StreamHandler(sys.stdout)
+	]
+)
 logger = getLogger("remote-server")
 
 PING_INTERVAL: int = 300
@@ -169,6 +179,7 @@ class Handler(LineReceiver):
 			self.transport.loseConnection()
 			return
 		cast(dict[str, Any], parsed)
+		logger.info(f"Connection {self.connectionId} received message: {parsed}")
 		if "type" not in parsed:
 			logger.warning("Invalid object received: %r", parsed)
 			return
@@ -183,14 +194,17 @@ class Handler(LineReceiver):
 
 	def do_join(self, obj: dict[str, str]) -> None:
 		"""Called when receiving a "join" message."""
+		logger.info(f"Connection {self.connectionId} join request: {obj}")
 		if (
 			"channel" not in obj
 			or not obj["channel"]
 			or "connection_type" not in obj
 			or not obj["connection_type"]
 		):
+			logger.warning(f"Connection {self.connectionId} invalid join parameters: {obj}")
 			self.send(type="error", error="invalid_parameters")
 			return
+		logger.info(f"Connection {self.connectionId} joining channel {obj['channel']} as {obj['connection_type']}")
 		self.user.join(obj["channel"], connectionType=obj["connection_type"])
 		self.cleanupTimer.cancel()
 
